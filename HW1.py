@@ -65,7 +65,7 @@ else:
                 ]
 
                 stream = client.chat.completions.create(
-                    model="gpt-3.5",
+                    model="gpt-4.1",
                     messages=messages,
                     stream=True,
                 )
