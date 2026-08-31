@@ -63,7 +63,7 @@ if check_key:
 
  # Process the uploaded file and question.
 
-document = uploaded_file.read().decode()
+
 if document:
     messages = [
             {
