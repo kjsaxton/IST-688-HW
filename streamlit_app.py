@@ -62,8 +62,10 @@ if check_key:
             st.error("Unsupported file type.")
 
  # Process the uploaded file and question.
+
 document = uploaded_file.read().decode()
-messages = [
+if document:
+    messages = [
             {
                 "role": "user",
                 "content": f"Here's a document: {document} \n\n---\n\n {question}",
