@@ -3,10 +3,10 @@ from openai import OpenAI
 
 from pypdf import PdfReader
 
-def read_pdf(uploaded_file)
+def read_pdf(uploaded_file):
     reader=PdfReader(uploaded_file)
     text =""
-    for page in reader.pages
+    for page in reader.pages:
         page_text = page.extract_text()
         if page_text:
             text += page_text + "/n"
@@ -54,9 +54,9 @@ if check_key:
 
     if uploaded_file and question:
 
-        ile_extension = uploaded_file.name.split('.')[-1]
+        file_extension = uploaded_file.name.split('.')[-1]
 if file_extension == 'txt':
-document = uploaded_file.read().decode()
+    document = uploaded_file.read().decode()
 elif file_extension == 'pdf':
 document = read_pdf(uploaded_file)
 else:
