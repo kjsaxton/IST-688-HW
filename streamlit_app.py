@@ -55,11 +55,11 @@ if check_key:
 
         file_extension = uploaded_file.name.split('.')[-1]
         if file_extension == 'txt':
-        document = uploaded_file.read().decode()
+            document = uploaded_file.read().decode()
         elif file_extension == 'pdf':
-        document = read_pdf(uploaded_file)
-else:
-    st.error("Unsupported file type.")
+            document = read_pdf(uploaded_file)
+        else:
+            st.error("Unsupported file type.")
 
  # Process the uploaded file and question.
 document = uploaded_file.read().decode()
