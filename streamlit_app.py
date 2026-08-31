@@ -9,9 +9,9 @@ def read_pdf(uploaded_file):
     for page in reader.pages:
         page_text = page.extract_text()
         if page_text:
-            text += page_text + "/n"
-        return text
-         
+            text += page_text + "\n"
+    return text
+
 # Show title and description.
 st.title("MY Document question answering")
 st.write(
