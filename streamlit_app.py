@@ -29,7 +29,9 @@ else:
 
     # Create an OpenAI client.
     client = OpenAI(api_key=openai_api_key)
+
 check_key=False
+
 try:
     client.models.list()
     check_key=True
@@ -51,6 +53,14 @@ if check_key:
     )
 
     if uploaded_file and question:
+
+        ile_extension = uploaded_file.name.split('.')[-1]
+if file_extension == 'txt':
+document = uploaded_file.read().decode()
+elif file_extension == 'pdf':
+document = read_pdf(uploaded_file)
+else:
+st.error("Unsupported file type.")
 
         # Process the uploaded file and question.
         document = uploaded_file.read().decode()
