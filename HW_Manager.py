@@ -1,7 +1,9 @@
 import streamlit as st
 
-HW1=st.Page('HW1.py', title='HW1')
-HW2=st.Page('HW2.py', title='HW2', default=True)
+st.set_page_config(page_title="HW Manager")
 
-pg=st.navigation([Lab1,Lab2])
+HW1 = st.Page('HW/HW1.py', title='HW1')
+HW2 = st.Page('HW/HW2.py', title='HW2', default=True)
+
+pg = st.navigation([HW1, HW2])
 pg.run()
