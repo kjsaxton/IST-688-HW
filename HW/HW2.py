@@ -25,8 +25,8 @@ def read_url_content(url):
 
 
 MODEL_OPTIONS = {
-    "OpenAI": {"basic": "gpt-4o-mini", "advanced": "gpt-4o"},
-    "Claude (Anthropic)": {"basic": "claude-3-5-haiku-20241022", "advanced": "claude-3-5-sonnet-20241022"},
+    "OpenAI": {"basic": "gpt-5-nano", "advanced": "gpt-5-mini"},
+    "Claude (Anthropic)": {"basic": "claude-haiku-4-5-20251001", "advanced": "claude-sonnet-5"},
 }
 
 SUMMARY_TYPES = {
@@ -96,9 +96,9 @@ active_key = key_map[llm_choice]
 
 if generate:
     if not url:
-        st.warning("Please enter a URL first.", icon="⚠️")
+        st.warning("Please enter a URL first.")
     elif not active_key:
-        st.error(f"No API key found for **{llm_choice}**. Add it in Settings > Secrets.", icon="🗝️")
+        st.error(f"No API key found for **{llm_choice}**. Add it in Settings > Secrets.")
     else:
         with st.spinner(f"Reading page and summarizing with {llm_choice} ({selected_model})..."):
             page_text = read_url_content(url)
