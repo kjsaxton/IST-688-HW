@@ -1,7 +1,17 @@
 import requests
 from bs4 import BeautifulSoup
 import streamlit as st
-from openai import OpenAI
+
+try:
+    from openai import OpenAI
+except ImportError:
+    OpenAI = None
+
+try:
+    import anthropic
+except ImportError:
+    anthropic = None
+
 
 def read_url_content(url):
     try:
@@ -14,7 +24,10 @@ def read_url_content(url):
         return None
 
 
-MODEL_OPTIONS = {"basic": "gpt-4o-mini", "advanced": "gpt-4o"}
+MODEL_OPTIONS = {
+    "OpenAI": {"basic": "gpt-4o-mini", "advanced": "gpt-4o"},
+    "Claude (Anthropic)": {"basic": "claude-3-5-haiku-20241022", "advanced": "claude-3-5-sonnet-20241022"},
+}
 
 SUMMARY_TYPES = {
     "Summarize in 100 words": "Summarize the text in about 100 words.",
@@ -35,6 +48,8 @@ def build_prompt(text, summary_instruction, language):
 
 
 def call_openai(api_key, model, prompt):
+    if OpenAI is None:
+        return "The `openai` package is not installed. Add it to requirements.txt."
     client = OpenAI(api_key=api_key)
     response = client.chat.completions.create(
         model=model,
@@ -43,7 +58,19 @@ def call_openai(api_key, model, prompt):
     return response.choices[0].message.content
 
 
-st.title("HW2 - URL Summarizer")
+def call_claude(api_key, model, prompt):
+    if anthropic is None:
+        return "The `anthropic` package is not installed. Add it to requirements.txt."
+    client = anthropic.Anthropic(api_key=api_key)
+    response = client.messages.create(
+        model=model,
+        max_tokens=1024,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return response.content[0].text
+
+
+st.title("HW2 - URL Summarizer with Multiple LLMs")
 st.caption("Enter a web page URL below, then configure the summary in the sidebar.")
 
 url = st.text_input("Enter a URL to summarize", placeholder="https://example.com/article")
@@ -54,25 +81,33 @@ with st.sidebar:
     language = st.selectbox("Output language", LANGUAGES, index=0)
     st.divider()
     st.header("Model Options")
+    llm_choice = st.selectbox("Choose the LLM provider", list(MODEL_OPTIONS.keys()))
     use_advanced = st.checkbox("Use advanced model", value=False)
     tier = "advanced" if use_advanced else "basic"
-    selected_model = MODEL_OPTIONS[tier]
+    selected_model = MODEL_OPTIONS[llm_choice][tier]
     st.caption(f"Model: `{selected_model}`")
     generate = st.button("Generate Summary", type="primary", use_container_width=True)
 
 openai_key = st.secrets.get("OPENAI_API_KEY", None)
+claude_key = st.secrets.get("ANTHROPIC_API_KEY", None)
+
+key_map = {"OpenAI": openai_key, "Claude (Anthropic)": claude_key}
+active_key = key_map[llm_choice]
 
 if generate:
     if not url:
         st.warning("Please enter a URL first.", icon="⚠️")
-    elif not openai_key:
-        st.error("No OpenAI API key found. Add OPENAI_API_KEY in Settings > Secrets.", icon="🗝️")
+    elif not active_key:
+        st.error(f"No API key found for **{llm_choice}**. Add it in Settings > Secrets.", icon="🗝️")
     else:
-        with st.spinner(f"Reading page and summarizing ({selected_model})..."):
+        with st.spinner(f"Reading page and summarizing with {llm_choice} ({selected_model})..."):
             page_text = read_url_content(url)
             if page_text:
                 prompt = build_prompt(page_text, SUMMARY_TYPES[summary_choice], language)
-                summary = call_openai(openai_key, selected_model, prompt)
+                if llm_choice == "OpenAI":
+                    summary = call_openai(active_key, selected_model, prompt)
+                else:
+                    summary = call_claude(active_key, selected_model, prompt)
                 st.subheader("Summary")
                 st.write(summary)
                 with st.expander("Show raw extracted page text"):
