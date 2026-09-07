@@ -1,16 +1,9 @@
 import requests
 from bs4 import BeautifulSoup
 import streamlit as st
+from openai import OpenAI
+import anthropic
 
-try:
-    from openai import OpenAI
-except ImportError:
-    OpenAI = None
-
-try:
-    import anthropic
-except ImportError:
-    anthropic = None
 
 
 def read_url_content(url):
