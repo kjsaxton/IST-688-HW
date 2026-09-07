@@ -28,7 +28,7 @@ SUMMARY_TYPES = {
     "Summarize in 5 bullet points": "Summarize the text as 5 concise bullet points.",
 }
 
-LANGUAGES = ["English", "French", "Spanish", "German", "Japanese"]
+LANGUAGES = ["English", "French", "Spanish", "German", "Russian", "Japanese"]
 
 
 def build_prompt(text, summary_instruction, language):
