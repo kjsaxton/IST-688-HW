@@ -1,6 +1,6 @@
 streamlit
 openai
-pypdf 
+anthropic
 requests
 beautifulsoup4
-anthropic
+pypdf
