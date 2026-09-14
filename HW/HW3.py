@@ -96,7 +96,7 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
  
- 
+
 def stream_openai(messages_to_send):
     client = OpenAI(api_key=active_key)
     stream = client.chat.completions.create(
@@ -104,11 +104,11 @@ def stream_openai(messages_to_send):
         messages=messages_to_send,
         stream=True,
     )
-    for chunk in stream:
+    for chunk in stream: #Claude suggested I include this to reduce errors
         delta = chunk.choices[0].delta.content 
         if delta:
             yield delta
- 
+
  
 def stream_claude(messages_to_send):
     client = anthropic.Anthropic(api_key=active_key)
