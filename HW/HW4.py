@@ -3,7 +3,7 @@ from openai import OpenAI
 import sys
 import chromadb
 from pathlib import Path
-from pypdf import PdfReader
+from bs4 import BeautifulSoup
  
 # A fix for working with ChromaDB on streamlit community cloud
 __import__('pysqlite3')
@@ -45,29 +45,25 @@ def add_to_collection(collection, text, file_name):
 #### EXTRACT TEXT FROM PDF ####
 # This function extracts text from each syllabus
 # to pass to add_to_collection
-def extract_text_from_pdf(pdf_path):
-  reader = PdfReader(pdf_path)
-  text = ""
-  for page in reader.pages:
-      page_text = page.extract_text()
-      if page_text:
-          text += page_text + "\n"
-  return text
+def extract_text_from_html(html_path):
+    with open(html_path, "r", encoding="utf-8") as f:
+        soup = BeautifulSoup(f, "html.parser")
+    return soup.get_text(separator=" ", strip=True)
  
-#### POPULATE COLLECTION WITH PDFs 
-# This function uses extract_text_from_pdf
+#### POPULATE COLLECTION WITH HTMLs 
+# This function uses extract_text_from_html
 # and add_to_collection to put syllabi in ChromaDB collection
-def load_pdfs_to_collection(folder_path, collection):
+def load_html_to_collection(folder_path, collection):
     loaded = []
-    for pdf_path in Path(folder_path).glob("*.pdf"):
-        text = extract_text_from_pdf(pdf_path)
-        add_to_collection(collection, text, pdf_path.name)
-        loaded.append(pdf_path.name)
+    for html_path in Path(folder_path).glob("*.html"):
+        text = extract_text_from_html(html_path)
+        add_to_collection(collection, text, html_path.name)
+        loaded.append(html_path.name)
     return loaded
  
 # Check if collection is empty and load PDFs
 if collection.count() == 0:
-    loaded = load_pdfs_to_collection('./HW-04-Data/', collection)
+   loaded = load_html_to_collection('./HW-04-Data/', collection)
  
 if 'HW4_VectorDB' not in st.session_state:
     st.session_state.HW4_VectorDB = collection
