@@ -10,8 +10,8 @@ __import__('pysqlite3')
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
  
 # create ChromaDB client
-chroma_client = chromadb.PersistentClient(path='./ChromaDB_for_Lab')
-collection = chroma_client.get_or_create_collection('Lab4Collection')
+chroma_client = chromadb.PersistentClient(path='./ChromaDB_for_HW')
+collection = chroma_client.get_or_create_collection('HW4Collection')
  
 ## USING CHROMA DB WITH OPENAI EMBEDDINGS ####
  
@@ -67,10 +67,10 @@ def load_pdfs_to_collection(folder_path, collection):
  
 # Check if collection is empty and load PDFs
 if collection.count() == 0:
-    loaded = load_pdfs_to_collection('./Lab-04-Data/', collection)
+    loaded = load_pdfs_to_collection('./HW-04-Data/', collection)
  
-if 'Lab4_VectorDB' not in st.session_state:
-    st.session_state.Lab4_VectorDB = collection
+if 'HW4_VectorDB' not in st.session_state:
+    st.session_state.HW4_VectorDB = collection
  
 # Ask user for their OpenAI API key via `st.text_input`.
 # Alternatively, you can store the API key in `./.streamlit/secrets.toml` and access it
@@ -95,7 +95,7 @@ client = OpenAI(api_key=openai_api_kev)
 #     query_embedding = response.data[0].embedding
 #
 #     # Get the text related to this question (this prompt)
-#     results = st.session_state.Lab4_VectorDB.query(
+#     results = st.session_state.HW4_VectorDB.query(
 #         query_embeddings=[query_embedding],
 #         n_results=3  # The number of closest documents to return
 #     )
@@ -208,7 +208,7 @@ if prompt := st.chat_input("What is up?"):
         st.markdown(prompt)
  
         extra_info, source_ids = get_info_from_vectorDB(
-        st.session_state.Lab4_VectorDB, prompt
+        st.session_state.HW4_VectorDB, prompt
     )
  
     rag_system_prompt = {
