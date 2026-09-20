@@ -61,26 +61,26 @@ def extract_text_from_html(html_path):
 def chunk_by_paragraph(text, num_chunks=2):
    paragraphs = [p for p in text.split("\n") if p.strip()]
 
-    if len(paragraphs) < 2:
+   if len(paragraphs) < 2:
         words = text.split()
         if not words:
             return [text, ""]
         mid = len(words) // 2
         return [" ".join(words[:mid]), " ".join(words[mid:])]
 
-    total_len = sum(len(p) for p in paragraphs)
-    target = total_len / 2
-    running = 0
-    split_idx = 1
-    for i, p in enumerate(paragraphs):
-        running += len(p)
-        if running >= target:
-            split_idx = i + 1
-            break
+   total_len = sum(len(p) for p in paragraphs)
+   target = total_len / 2
+   running = 0
+   split_idx = 1
+   for i, p in enumerate(paragraphs):
+       running += len(p)
+       if running >= target:
+           split_idx = i + 1
+           break
 
-    chunk1 = " ".join(paragraphs[:split_idx])
-    chunk2 = " ".join(paragraphs[split_idx:])
-    return [chunk1, chunk2]
+   chunk1 = " ".join(paragraphs[:split_idx])
+   chunk2 = " ".join(paragraphs[split_idx:])
+   return [chunk1, chunk2]
 
 #### POPULATE COLLECTION WITH HTMLs 
 # This function uses extract_text_from_html
