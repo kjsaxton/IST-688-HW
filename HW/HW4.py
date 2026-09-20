@@ -101,6 +101,8 @@ def load_html_to_collection(folder_path, collection):
 if collection.count() == 0:
    loaded = load_html_to_collection('HW/HW-04-Data/', collection)
 
+st.sidebar.write(f"Collection currently has {collection.count()} chunks")
+
 if 'HW4_VectorDB' not in st.session_state:
     st.session_state.HW4_VectorDB = collection
  
