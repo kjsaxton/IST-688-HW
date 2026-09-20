@@ -196,9 +196,9 @@ system_prompt = {
         "3. If the user says something like 'no', stop giving more detail "
         "and instead ask: 'What else can I help you with?'\n"
         "Keep following this pattern for every new question the user asks.\n\n"
-        "You will sometimes be given course syllabus excerpts as context "
+        "You will sometimes be given course student organizations as context "
         "below the conversation. If you use that context to answer, say "
-        "so clearly (e.g., 'Based on the course syllabus...'). If the "
+        "so clearly (e.g., 'Based on the student organization...'). If the "
         "context doesn't have relevant info, say so and answer from your "
         "general knowledge instead."
     ),
