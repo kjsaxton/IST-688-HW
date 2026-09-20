@@ -42,13 +42,13 @@ def add_to_collection(collection, text, file_name):
         embeddings=[embedding]
     )
  
-#### EXTRACT TEXT FROM PDF ####
+#### EXTRACT TEXT FROM HTML ####
 # This function extracts text from each syllabus
 # to pass to add_to_collection
 def extract_text_from_html(html_path):
     with open(html_path, "r", encoding="utf-8") as f:
         soup = BeautifulSoup(f, "html.parser")
-    return soup.get_text(separator=" ", strip=True)
+    return soup.get_text(separator="\n ", strip=True)
  
 #### POPULATE COLLECTION WITH HTMLs 
 # This function uses extract_text_from_html
@@ -133,7 +133,7 @@ def get_info_from_vectorDB(myVectorDB, prompt, n_results=3):
 buffer_type = st.sidebar.radio(
     "Conversation memory type:",
     (
-        "Last 2 questions",
+        "Last 5 interactions",
         "Token limit",
     )
 )
@@ -183,8 +183,8 @@ def estimate_tokens(text):
  
  
 def build_buffer(messages, buffer_type, max_tokens, system_prompt):
-    if buffer_type == "Last 2 questions":
-        trimmed = messages[-4:] if len(messages) > 4 else messages
+    if buffer_type == "Last 5 interactions":
+        trimmed = messages[-10:] if len(messages) > 10 else messages
         return [system_prompt] + trimmed
     else:
         running_total = estimate_tokens(system_prompt["content"])
