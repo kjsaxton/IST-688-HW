@@ -100,7 +100,8 @@ def load_html_to_collection(folder_path, collection):
 # Check if collection is empty and load PDFs
 if collection.count() == 0:
    loaded = load_html_to_collection('./HW-04-Data/', collection)
- 
+   st.sidebar.write(f"Loaded {len(loaded)} files, collection now has {collection.count()} chunks")
+
 if 'HW4_VectorDB' not in st.session_state:
     st.session_state.HW4_VectorDB = collection
  
