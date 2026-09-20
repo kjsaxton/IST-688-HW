@@ -89,7 +89,11 @@ def load_html_to_collection(folder_path, collection):
     loaded = []
     for html_path in Path(folder_path).glob("*.html"):
         text = extract_text_from_html(html_path)
-        add_to_collection(collection, text, html_path.name)
+        chunks = chunk_by_paragraph(text)
+        for i, chunk_text in enumerate(chunks):
+            if chunk_text.strip():
+                chunk_id = f"{html_path.name}_chunk{i+1}"
+                add_to_collection(collection, chunk_text, chunk_id)
         loaded.append(html_path.name)
     return loaded
  
