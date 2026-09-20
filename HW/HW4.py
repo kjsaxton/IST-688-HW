@@ -49,7 +49,39 @@ def extract_text_from_html(html_path):
     with open(html_path, "r", encoding="utf-8") as f:
         soup = BeautifulSoup(f, "html.parser")
     return soup.get_text(separator="\n ", strip=True)
- 
+
+#### CHUNKING THE DOCUMENTS ####
+# This function will split a document into 2 mini docs
+# Chunking method: split by paragraph boundaries
+# My Rationale for this method is: to avoid cutting text mid thought
+# No text is cut mid sentence, This will keep things coherent
+# Will pick paragraph break closest to midpoint so the chunks stay balanced in size
+# If a document has fewer than 2 paragraphs, then it will fall back to
+# split based on word count so each document will have 2 chunks
+def chunk_by_paragraph(text, num_chunks=2):
+   paragraphs = [p for p in text.split("\n") if p.strip()]
+
+    if len(paragraphs) < 2:
+        words = text.split()
+        if not words:
+            return [text, ""]
+        mid = len(words) // 2
+        return [" ".join(words[:mid]), " ".join(words[mid:])]
+
+    total_len = sum(len(p) for p in paragraphs)
+    target = total_len / 2
+    running = 0
+    split_idx = 1
+    for i, p in enumerate(paragraphs):
+        running += len(p)
+        if running >= target:
+            split_idx = i + 1
+            break
+
+    chunk1 = " ".join(paragraphs[:split_idx])
+    chunk2 = " ".join(paragraphs[split_idx:])
+    return [chunk1, chunk2]
+
 #### POPULATE COLLECTION WITH HTMLs 
 # This function uses extract_text_from_html
 # and add_to_collection to put syllabi in ChromaDB collection
