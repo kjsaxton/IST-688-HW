@@ -21,7 +21,7 @@ if 'openai_client' not in st.session_state:
  
 # A function that will add documents to the collection
 # collection = ChromaDB collection, already established
-# text = extracted text from PDF files
+# text = extracted text from student organization HTML files
 # Embeddings inserted into the collection from OpenAI
 def add_to_collection(collection, text, file_name):
  
@@ -43,7 +43,7 @@ def add_to_collection(collection, text, file_name):
     )
  
 #### EXTRACT TEXT FROM HTML ####
-# This function extracts text from each syllabus
+# This function extracts text from each student organization page
 # to pass to add_to_collection
 def extract_text_from_html(html_path):
     with open(html_path, "r", encoding="utf-8", errors="ignore") as f:
@@ -84,7 +84,7 @@ def chunk_by_paragraph(text, num_chunks=2):
 
 #### POPULATE COLLECTION WITH HTMLs 
 # This function uses extract_text_from_html
-# and add_to_collection to put syllabi in ChromaDB collection
+# and add_to_collection to put student organization pages in ChromaDB collection
 def load_html_to_collection(folder_path, collection):
     loaded = []
     for html_path in Path(folder_path).glob("*.html"):
@@ -96,13 +96,14 @@ def load_html_to_collection(folder_path, collection):
                     chunk_id = f"{html_path.name}_chunk{i+1}"
                     add_to_collection(collection, chunk_text, chunk_id)
             loaded.append(html_path.name)
-        except Exception:
+        except Exception as e:
+            st.sidebar.write(f"{html_path.name}: {e}")
             continue
     return loaded
  
-# Check if collection is empty and load PDFs
+# Check if collection is empty and load HTML files
 if collection.count() == 0:
-   loaded = load_html_to_collection('HW/Su_orgs/', collection)
+   loaded = load_html_to_collection('HW/su_orgs/', collection)
 
 st.sidebar.write(f"Collection currently has {collection.count()} chunks")
 
@@ -201,10 +202,10 @@ system_prompt = {
         "3. If the user says something like 'no', stop giving more detail "
         "and instead ask: 'What else can I help you with?'\n"
         "Keep following this pattern for every new question the user asks.\n\n"
-        "You will sometimes be given course student organizations as context "
+        "You will sometimes be given student organization excerpts as context "
         "below the conversation. If you use that context to answer, say "
-        "so clearly (e.g., 'Based on the student organization...'). If the "
-        "context doesn't have relevant info, say so and answer from your "
+        "so clearly (e.g., 'Based on the student organization info I found...'). "
+        "If the context doesn't have relevant info, say so and answer from your "
         "general knowledge instead."
     ),
 }
@@ -252,7 +253,7 @@ if prompt := st.chat_input("What is up?"):
         "role": "system",
         "content": (
             system_prompt["content"]
-            + "\n\nRelevant course syllabus excerpts:\n\n"
+            + "\n\nRelevant student organization excerpts:\n\n"
             + extra_info
         ),
     }
