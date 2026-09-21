@@ -46,7 +46,7 @@ def add_to_collection(collection, text, file_name):
 # This function extracts text from each syllabus
 # to pass to add_to_collection
 def extract_text_from_html(html_path):
-    with open(html_path, "r", encoding="utf-8") as f:
+    with open(html_path, "r", encoding="utf-8", errors="ignore") as f:
         soup = BeautifulSoup(f, "html.parser")
     return soup.get_text(separator="\n ", strip=True)
 
