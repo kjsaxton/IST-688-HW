@@ -99,7 +99,7 @@ def load_html_to_collection(folder_path, collection):
  
 # Check if collection is empty and load PDFs
 if collection.count() == 0:
-   loaded = load_html_to_collection('Su_orgs/', collection)
+   loaded = load_html_to_collection('HW/Su_orgs/', collection)
 
 st.sidebar.write(f"Collection currently has {collection.count()} chunks")
 
