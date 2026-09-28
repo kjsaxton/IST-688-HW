@@ -160,15 +160,12 @@ max_tokens = st.sidebar.number_input(
 
 st.title("HW5 - Student Org Chatbot with Tool-Calling RAG")
 st.write(
-    st.write(
     "Ask me about Syracuse student organizations. I will decide when a database "
     "lookup is necessary and what to search for, using a function called "
     "relevant_club_info."
 )
 
-
 system_prompt = {
- system_prompt = {
     "role": "system",
     "content": (
         "You are a friendly assistant that helps students learn about Syracuse "
@@ -183,7 +180,6 @@ system_prompt = {
         "from general knowledge instead. Do not call the tool for greetings, "
         "thanks, or questions unrelated to student organizations."
     ),
-}
 }
 
 if "messages" not in st.session_state:
