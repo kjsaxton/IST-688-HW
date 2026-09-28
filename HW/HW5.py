@@ -6,39 +6,24 @@ import chromadb
 from pathlib import Path
 from bs4 import BeautifulSoup
 
-# A fix for working with ChromaDB on streamlit community cloud
 __import__('pysqlite3')
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
-# create ChromaDB client
 chroma_client = chromadb.PersistentClient(path='./ChromaDB_for_HW')
 collection = chroma_client.get_or_create_collection('HW4Collection')
 
-## USING CHROMA DB WITH OPENAI EMBEDDINGS ####
-
-# Create OpenAI client
 if 'openai_client' not in st.session_state:
     st.session_state.openai_client = OpenAI(api_key=st.secrets.OPENAI_API_KEY)
 
 client = st.session_state.openai_client
 
 
-# A function that will add documents to the collection
-# collection = ChromaDB collection, already established
-# text = extracted text from student organization HTML files
-# Embeddings inserted into the collection from OpenAI
 def add_to_collection(collection, text, file_name):
-
-    # Create an embedding
     response = client.embeddings.create(
         input=text,
         model='text-embedding-3-small'
     )
-
-    # Get the Embedding
     embedding = response.data[0].embedding
-
-    # Add embedding and document to ChromaDB
     collection.add(
         documents=[text],
         ids=[file_name],
@@ -46,23 +31,12 @@ def add_to_collection(collection, text, file_name):
     )
 
 
-#### EXTRACT TEXT FROM HTML ####
-# This function extracts text from each student organization page
-# to pass to add_to_collection
 def extract_text_from_html(html_path):
     with open(html_path, "r", encoding="utf-8", errors="ignore") as f:
         soup = BeautifulSoup(f, "html.parser")
     return soup.get_text(separator="\n ", strip=True)
 
 
-#### CHUNKING THE DOCUMENTS ####
-# This function will split a document into 2 mini docs
-# Chunking method: split by paragraph boundaries
-# My Rationale for this method is: to avoid cutting text mid thought
-# No text is cut mid sentence, This will keep things coherent
-# Will pick paragraph break closest to midpoint so the chunks stay balanced in size
-# If a document has fewer than 2 paragraphs, then it will fall back to
-# split based on word count so each document will have 2 chunks
 def chunk_by_paragraph(text, num_chunks=2):
     paragraphs = [p for p in text.split("\n") if p.strip()]
 
@@ -88,9 +62,6 @@ def chunk_by_paragraph(text, num_chunks=2):
     return [chunk1, chunk2]
 
 
-#### POPULATE COLLECTION WITH HTMLs
-# This function uses extract_text_from_html
-# and add_to_collection to put student organization pages in ChromaDB collection
 def load_html_to_collection(folder_path, collection):
     loaded = []
     for html_path in Path(folder_path).glob("*.html"):
@@ -108,7 +79,6 @@ def load_html_to_collection(folder_path, collection):
     return loaded
 
 
-# Check if collection is empty and load HTML files
 if collection.count() == 0:
     loaded = load_html_to_collection('HW/su_orgs/', collection)
 
@@ -117,9 +87,8 @@ if 'HW5_VectorDB' not in st.session_state:
 
 model = "gpt-5-mini"
 
+
 def relevant_club_info(query, n_results=3):
-    """Given a query, return the most relevant student-organization excerpts
-    from the ChromaDB collection, along with their source ids."""
     response = client.embeddings.create(
         input=query,
         model='text-embedding-3-small'
@@ -191,31 +160,30 @@ max_tokens = st.sidebar.number_input(
 
 st.title("HW5 - Student Org Chatbot with Tool-Calling RAG")
 st.write(
-    "Ask me about Syracuse student organizations! Rather than always searching "
-    "the database before every reply, I decide for myself when a question needs "
-    "a database lookup and what to search for, using a function called "
-    "`relevant_club_info`. "
-    f"**Memory:** I keep a short-term buffer of your conversation — either the "
-    f"**{buffer_type.lower()}**, chosen in the sidebar — so I can hold context "
-    "across turns without re-sending the entire chat history every time."
+    st.write(
+    "Ask me about Syracuse student organizations. I will decide when a database "
+    "lookup is necessary and what to search for, using a function called "
+    "relevant_club_info."
 )
 
+
 system_prompt = {
+ system_prompt = {
     "role": "system",
     "content": (
-        "You are a friendly assistant that helps students learn about student "
-        "organizations at the university. You have access to a tool called "
+        "You are a friendly assistant that helps students learn about Syracuse "
+        "student organizations. You have access to a tool called "
         "relevant_club_info(query) that searches a vector database of student "
-        "organization pages. Call it whenever the user asks about a specific "
-        "club, activity, or organization, rewriting the request into a clear "
-        "standalone search query if needed (e.g. resolve pronouns and vague "
-        "follow-ups using the conversation so far). "
-        "If you use information from the tool, say so clearly (e.g. 'Based on "
-        "the student organization info I found...'). If the tool returns nothing "
-        "relevant, say so and answer from general knowledge instead. "
-        "Do not call the tool for greetings, thanks, or questions unrelated to "
-        "student organizations."
+        "organization pages. Call it whenever the user asks about a club, "
+        "activity, or organization. Rewrite vague follow-ups (like 'their "
+        "contact info' or 'meeting times') into a clear, standalone search "
+        "query using the conversation so far. If you use information from the "
+        "tool, say so clearly (e.g. 'Based on the student organization info I "
+        "found...'). If the tool returns nothing relevant, say so and answer "
+        "from general knowledge instead. Do not call the tool for greetings, "
+        "thanks, or questions unrelated to student organizations."
     ),
+}
 }
 
 if "messages" not in st.session_state:
@@ -297,18 +265,14 @@ if prompt := st.chat_input("Ask about a student organization..."):
                 "content": info,
             })
 
-        with st.chat_message("assistant"):
-            stream = client.chat.completions.create(
-                model=model,
-                messages=messages_to_send,
-                stream=True,
-            )
-            response = st.write_stream(stream)
-            if source_ids:
-                st.caption(f"Sources consulted: {', '.join(source_ids)}")
-    else:
-        response = assistant_msg.content
-        with st.chat_message("assistant"):
-            st.markdown(response)
+    with st.chat_message("assistant"):
+        stream = client.chat.completions.create(
+            model=model,
+            messages=messages_to_send,
+            stream=True,
+        )
+        response = st.write_stream(stream)
+        if source_ids:
+            st.caption(f"Sources consulted: {', '.join(source_ids)}")
 
     st.session_state.messages.append({"role": "assistant", "content": response})
