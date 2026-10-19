@@ -3,9 +3,9 @@ from openai import OpenAI
 
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-def build_vector_db(csv_path="your_file.csv"):
+def build_vector_db(csv_path="news.csv"):
     df = pd.read_csv(csv_path)
-    chroma = chromadb.Client()                     # in-memory, same as Lab 4
+    chroma = chromadb.Client()                     
     col = chroma.get_or_create_collection("HW7NewsCollection")
 
     texts = [f"{r['TITLE_COL']}\n{r['BODY_COL']}"[:8000] for _, r in df.iterrows()]   # rename columns
