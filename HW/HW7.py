@@ -103,9 +103,9 @@ def ask_llm(model, system_text, history, user_msg):
     return client.chat.completions.create(model=model, messages=messages).choices[0].message.content
  
  
-# ---------- UI ----------
+
 st.title("News Information Bot")
-model = st.sidebar.selectbox("Model", ["gpt-5-mini", "gpt-5"])  # cheap vs. expensive
+model = st.sidebar.selectbox("Model", ["gpt-5-mini", "gpt-5"])  
 st.sidebar.write(f"Articles loaded: {col.count()}")
  
 if "messages" not in st.session_state:
