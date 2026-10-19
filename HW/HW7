@@ -1,45 +1,30 @@
-import streamlit as st, chromadb
+import streamlit as st, chromadb, pandas as pd
 from openai import OpenAI
 
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-col = chromadb.PersistentClient(path="./news_db").get_collection("NewsCollection")
 
-model = st.sidebar.selectbox("Model", ["gpt-5-mini", "gpt-5"])   # lets you do the two-LLM comparison in one app
+def build_vector_db(csv_path="your_file.csv"):
+    df = pd.read_csv(csv_path)
+    chroma = chromadb.Client()                     # in-memory, same as Lab 4
+    col = chroma.get_or_create_collection("HW7NewsCollection")
 
-def search_news(query, k=5):
-    emb = client.embeddings.create(model="text-embedding-3-small", input=query).data[0].embedding
-    r = col.query(query_embeddings=[emb], n_results=k)
-    return [(d, m, dist) for d, m, dist in zip(r["documents"][0], r["metadatas"][0], r["distances"][0])]
+    texts = [f"{r['TITLE_COL']}\n{r['BODY_COL']}"[:8000] for _, r in df.iterrows()]   # rename columns
+    metas = [{"title": str(r["TITLE_COL"]), "date": str(r["DATE_COL"])} for _, r in df.iterrows()]
+    ids = [str(i) for i in range(len(df))]
 
-def format_articles(items):
-    return "\n\n".join(f"[{m['title']} | {m['date']}]\n{d[:1500]}" for d, m, _ in items)
+    # embed in batches (much faster than one call per row)
+    for start in range(0, len(texts), 100):
+        batch = texts[start:start+100]
+        resp = client.embeddings.create(model="text-embedding-3-small", input=batch)
+        col.add(
+            ids=ids[start:start+100],
+            documents=batch,
+            embeddings=[e.embedding for e in resp.data],
+            metadatas=metas[start:start+100],
+        )
+    return col
 
-# TODO: write your system prompt. Include: only use the provided articles,
-# say so if nothing is relevant, and cite titles.
-SYSTEM = "..."
-
-# TODO: write your criteria for "interesting" (what would a law firm care about?)
-INTEREST_CRITERIA = "..."
-
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-for m in st.session_state.messages:
-    st.chat_message(m["role"]).write(m["content"])
-
-if prompt := st.chat_input("Ask about the news"):
-    st.chat_message("user").write(prompt)
-
-    if "interesting" in prompt.lower():          # simple routing; improve if you have time
-        all_docs = col.get(limit=50)             # or pre-filter; mind your context size
-        items = [(d, m, 0) for d, m in zip(all_docs["documents"], all_docs["metadatas"])]
-        instruction = f"Rank these articles from most to least interesting using these criteria: {INTEREST_CRITERIA}. For each, give a one-line reason."
-    else:
-        items = search_news(prompt)
-        instruction = "Answer using only these articles."
-
-    messages = [{"role": "system", "content": SYSTEM + "\n\n" + instruction + "\n\n" + format_articles(items)}] \
-               + st.session_state.messages + [{"role": "user", "content": prompt}]
-    reply = client.chat.completions.create(model=model, messages=messages).choices[0].message.content
-
-    st.chat_message("assistant").write(reply)
-    st.session_state.messages += [{"role": "user", "content": prompt}, {"role": "assistant", "content": reply}]
+if "HW7_VectorDB" not in st.session_state:
+    with st.spinner("Building news database..."):
+        st.session_state.HW7_VectorDB = build_vector_db()
+col = st.session_state.HW7_VectorDB
