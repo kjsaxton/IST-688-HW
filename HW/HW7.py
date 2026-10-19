@@ -1,5 +1,8 @@
 import streamlit as st, chromadb, pandas as pd
 from openai import OpenAI
+__import__("pysqlite3")
+import sys
+sys.modules["sqlite3"] = sys.modules.pop("pysqlite3")
 
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
