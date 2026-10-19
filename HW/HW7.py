@@ -5,18 +5,13 @@ try:
 except ImportError:
     pass
  
+import re
 import streamlit as st
 import chromadb
 import pandas as pd
 from openai import OpenAI
  
-
-CSV_PATH = "news.csv"
-TITLE_COL = "YOUR_TITLE_COLUMN"   # <- rename to your CSV's title column
-BODY_COL = "YOUR_BODY_COLUMN"     # <- rename to your CSV's article text column
-DATE_COL = "YOUR_DATE_COLUMN"     # <- rename to your CSV's date column
- 
-MAX_DISTANCE = 0.6   # cosine distance cutoff; tune it (lower = stricter)
+CSV_PATH = "news.csv"          
  
 SYSTEM = (
     "You are a news assistant for a global law firm that monitors news about its clients. "
@@ -25,35 +20,45 @@ SYSTEM = (
 )
  
 INTEREST_CRITERIA = (
-    "Legal and regulatory risk (lawsuits, investigations, fines), mergers and acquisitions, "
-    "leadership changes, financial distress, reputational damage, and cross-border or "
-    "high-impact events affecting a client."
+    "Legal and regulatory risk (lawsuits, investigations, fines, regulator scrutiny), "
+    "mergers and acquisitions, leadership changes, financial distress, reputational damage, "
+    "and cross-border or high-impact events affecting a client."
 )
-# ==========================================================
  
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 EMBED_MODEL = "text-embedding-3-small"
  
  
-# ---------- build the vector DB once per server ----------
 @st.cache_resource(show_spinner="Building news database...")
 def build_vector_db(csv_path=CSV_PATH):
     df = pd.read_csv(csv_path).fillna("")
+    df["company_name"] = df["company_name"].str.strip()
+    df = df.drop_duplicates(subset=["Document"]).reset_index(drop=True)   # ~196 duplicate rows in the CSV
+ 
     col = chromadb.Client().get_or_create_collection(
         "HW7NewsCollection", metadata={"hnsw:space": "cosine"}
     )
  
-    texts = [f"{r[TITLE_COL]}\n{r[BODY_COL]}"[:8000] for _, r in df.iterrows()]
-    metas = [{"title": str(r[TITLE_COL]), "date": str(r[DATE_COL])} for _, r in df.iterrows()]
+    texts, metas = [], []
+    for _, r in df.iterrows():
+        doc = str(r["Document"])
+        title = doc.split(" Description:")[0].strip()          
+        texts.append(f"{r['company_name']}: {doc}"[:8000])     
+        metas.append({
+            "company": r["company_name"],
+            "title": title,
+            "date": str(r["Date"])[:10],
+            "url": str(r["URL"]),
+        })
     ids = [str(i) for i in range(len(df))]
  
-    for s in range(0, len(texts), 50):
-        resp = client.embeddings.create(model=EMBED_MODEL, input=texts[s:s + 50])
+    for s in range(0, len(texts), 100):
+        resp = client.embeddings.create(model=EMBED_MODEL, input=texts[s:s + 100])
         col.add(
-            ids=ids[s:s + 50],
-            documents=texts[s:s + 50],
+            ids=ids[s:s + 100],
+            documents=texts[s:s + 100],
             embeddings=[e.embedding for e in resp.data],
-            metadatas=metas[s:s + 50],
+            metadatas=metas[s:s + 100],
         )
     return col
  
@@ -61,7 +66,23 @@ def build_vector_db(csv_path=CSV_PATH):
 col = build_vector_db()
  
  
-# ---------- retrieval + LLM helpers ----------
+@st.cache_data
+def company_list():
+    return sorted({m["company"] for m in col.get()["metadatas"]})
+ 
+ 
+
+def find_companies(query):
+    """Return client companies mentioned by name in the query (whole-word match)."""
+    q = query.lower()
+    return [c for c in company_list() if re.search(r"\b" + re.escape(c.lower()) + r"\b", q)]
+ 
+ 
+def get_by_company(companies):
+    r = col.get(where={"company": {"$in": companies}})
+    return [(d, m, 0.0) for d, m in zip(r["documents"], r["metadatas"])]
+ 
+ 
 def search_news(query, k=5):
     emb = client.embeddings.create(model=EMBED_MODEL, input=query).data[0].embedding
     r = col.query(query_embeddings=[emb], n_results=min(k, col.count()))
@@ -69,7 +90,10 @@ def search_news(query, k=5):
  
  
 def format_articles(items):
-    return "\n\n".join(f"[{m['title']} | {m['date']}]\n{d[:1500]}" for d, m, _ in items)
+    return "\n\n".join(
+        f"[{m['company']} | {m['title']} | {m['date']} | {m['url']}]\n{d[:1500]}"
+        for d, m, _ in items
+    )
  
  
 def ask_llm(model, system_text, history, user_msg):
@@ -93,16 +117,24 @@ for m in st.session_state.messages:
 if prompt := st.chat_input("Ask about the news (e.g., 'Find the most interesting news')"):
     st.chat_message("user").write(prompt)
  
-    if "interesting" in prompt.lower():
-        items = search_news(INTEREST_CRITERIA, k=15)
+    mentioned = find_companies(prompt)
+    wants_interesting = "interesting" in prompt.lower()
+ 
+    if wants_interesting:
+        # candidate pool: a named company's articles, or the best matches to the criteria
+        items = get_by_company(mentioned) if mentioned else search_news(INTEREST_CRITERIA, k=POOL_SIZE)
         instruction = (
             "Rank these articles from most to least interesting for the law firm using these "
-            f"criteria: {INTEREST_CRITERIA}\nReturn a numbered list. For each article give the "
-            "title and 1-2 sentences explaining WHY it ranks there."
+            f"criteria: {INTEREST_CRITERIA}\nReturn a numbered list (at most 10). For each article give "
+            "the company, title, link, and 1-2 sentences explaining WHY it ranks there."
         )
     else:
-        items = [x for x in search_news(prompt, k=5) if x[2] <= MAX_DISTANCE]
-        instruction = "Answer the user's question using only these articles."
+        # topic query: exact company match if a client is named, otherwise semantic search
+        if mentioned:
+            items = get_by_company(mentioned)
+        else:
+            items = [x for x in search_news(prompt, k=5) if x[2] <= MAX_DISTANCE]
+        instruction = "Answer the user's question using only these articles. Include links."
  
     if not items:
         reply = "I couldn't find any relevant articles in my news set for that."
@@ -116,3 +148,4 @@ if prompt := st.chat_input("Ask about the news (e.g., 'Find the most interesting
         {"role": "user", "content": prompt},
         {"role": "assistant", "content": reply},
     ]
+ 
