@@ -12,7 +12,7 @@ def build_vector_db(csv_path="your_file.csv"):
     metas = [{"title": str(r["TITLE_COL"]), "date": str(r["DATE_COL"])} for _, r in df.iterrows()]
     ids = [str(i) for i in range(len(df))]
 
-    # embed in batches (much faster than one call per row)
+    
     for start in range(0, len(texts), 100):
         batch = texts[start:start+100]
         resp = client.embeddings.create(model="text-embedding-3-small", input=batch)
